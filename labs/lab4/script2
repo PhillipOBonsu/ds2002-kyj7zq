@@ -1,0 +1,43 @@
+import boto3
+from botocore.exceptions import ClientError
+import os
+import sys
+import requests
+from urllib.parse import urlparse
+
+def upload_file(GIF_URL, BUCKET, object_name=None):
+        response = requests.get(GIF_URL, stream=True)
+
+def download_file(GIF_URL, BUCKET, EXPIRES):
+        parsed_url= urlparse(GIF_URL)
+        file_name= os.path.basename(parsed_url.path)
+        path = os.path.join(os.getcwd(), file_name)
+        response = requests.get(GIF_URL, stream=True)
+        response.raise_for_status()
+        with open(path, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                        file.write(chunk)
+
+        s3_client = boto3.client('s3', region_name="us-east-1")
+        resp = s3_client.put_object(
+                ACL = 'public-read',
+                Body = path,
+                Bucket = BUCKET,
+                Key = file_name
+        )
+
+        response = s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': BUCKET, 'Key': file_name},
+                ExpiresIn= EXPIRES
+        )
+
+        print(response)
+
+if __name__=="__main__":
+        GIF_URL= sys.argv[1]
+        BUCKET= sys.argv[2]
+        EXPIRES= sys.argv[3]
+        download_file(GIF_URL, BUCKET, EXPIRES)
+
+#Final Input: python3 lab4.script2.py "https://media.cnn.com/api/v1/images/stellar/prod/200617131110-02-uva-reworked-logo-0616.jpg?q=w_1110,c_fill" ds2002-kyj7zq
